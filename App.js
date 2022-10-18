@@ -1,87 +1,92 @@
-import { useState } from 'react';
-import { StyleSheet, ImageBackground, SafeAreaView } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useFonts } from 'expo-font';
-import AppLoading from 'expo-app-loading';
 import { StatusBar } from 'expo-status-bar';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 
-import StartGameScreen from './screens/StartGameScreen';
-import GameScreen from './screens/GameScreen';
-import GameOverScreen from './screens/GameOverScreen';
-import Colors from './constants/colors';
+import ManageExpense from './screens/ManageExpense';
+import RecentExpenses from './screens/RecentExpenses';
+import AllExpenses from './screens/AllExpenses';
+import { GlobalStyles } from './constants/styles';
+import IconButton from './components/UI/IconButton';
+import ExpensesContextProvider from './store/expenses-context';
 
-export default function App() {
-  const [userNumber, setUserNumber] = useState();
-  const [gameIsOver, setGameIsOver] = useState(true);
-  const [guessRounds, setGuessRounds] = useState(0);
+const Stack = createNativeStackNavigator();
+const BottomTabs = createBottomTabNavigator();
 
-  const [fontsLoaded] = useFonts({
-    'open-sans': require('./assets/fonts/OpenSans-Regular.ttf'),
-    'open-sans-bold': require('./assets/fonts/OpenSans-Bold.ttf'),
-  });
-
-  if (!fontsLoaded) {
-    return <AppLoading />;
-  }
-
-  function pickedNumberHandler(pickedNumber) {
-    setUserNumber(pickedNumber);
-    setGameIsOver(false);
-  }
-
-  function gameOverHandler(numberOfRounds) {
-    setGameIsOver(true);
-    setGuessRounds(numberOfRounds);
-  }
-
-  function startNewGameHandler() {
-    setUserNumber(null);
-    setGuessRounds(0);
-  }
-
-  let screen = <StartGameScreen onPickNumber={pickedNumberHandler} />;
-
-  if (userNumber) {
-    screen = (
-      <GameScreen userNumber={userNumber} onGameOver={gameOverHandler} />
-    );
-  }
-
-  if (gameIsOver && userNumber) {
-    screen = (
-      <GameOverScreen
-        userNumber={userNumber}
-        roundsNumber={guessRounds}
-        onStartNewGame={startNewGameHandler}
-      />
-    );
-  }
-
+function ExpensesOverview() {
   return (
-    <>
-      <StatusBar style="light" />
-      <LinearGradient
-        colors={[Colors.primary700, Colors.accent500]}
-        style={styles.rootScreen}
-      >
-        <ImageBackground
-          source={require('./assets/images/background.png')}
-          resizeMode="cover"
-          style={styles.rootScreen}
-          imageStyle={styles.backgroundImage}
-        >
-          <SafeAreaView style={styles.rootScreen}>{screen}</SafeAreaView>
-        </ImageBackground>
-      </LinearGradient>
-    </>
+    <BottomTabs.Navigator
+      screenOptions={({ navigation }) => ({
+        headerStyle: { backgroundColor: GlobalStyles.colors.primary500 },
+        headerTintColor: 'white',
+        tabBarStyle: { backgroundColor: GlobalStyles.colors.primary500 },
+        tabBarActiveTintColor: GlobalStyles.colors.accent500,
+        headerRight: ({ tintColor }) => (
+          <IconButton
+            icon="add"
+            size={24}
+            color={tintColor}
+            onPress={() => {
+              navigation.navigate('ManageExpense');
+            }}
+          />
+        ),
+      })}
+    >
+      <BottomTabs.Screen
+        name="RecentExpenses"
+        component={RecentExpenses}
+        options={{
+          title: 'Recent Expenses',
+          tabBarLabel: 'Recent',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="hourglass" size={size} color={color} />
+          ),
+        }}
+      />
+      <BottomTabs.Screen
+        name="AllExpenses"
+        component={AllExpenses}
+        options={{
+          title: 'All Expenses',
+          tabBarLabel: 'All Expenses',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="calendar" size={size} color={color} />
+          ),
+        }}
+      />
+    </BottomTabs.Navigator>
   );
 }
 
-const styles = StyleSheet.create({
-  rootScreen: {
-    flex: 1,
-  },
-  backgroundImage: {
-    opacity: 0.15,
-  },
-});
+export default function App() {
+  return (
+    <>
+      <StatusBar style="light" />
+      <ExpensesContextProvider>
+        <NavigationContainer>
+          <Stack.Navigator
+            screenOptions={{
+              headerStyle: { backgroundColor: GlobalStyles.colors.primary500 },
+              headerTintColor: 'white',
+            }}
+          >
+            <Stack.Screen
+              name="ExpensesOverview"
+              component={ExpensesOverview}
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen
+              name="ManageExpense"
+              component={ManageExpense}
+              options={{
+                presentation: 'modal',
+              }}
+            />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </ExpensesContextProvider>
+    </>
+  );
+}
